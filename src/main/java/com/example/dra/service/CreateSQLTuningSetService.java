@@ -14,4 +14,6 @@ public interface CreateSQLTuningSetService {
 
 
 	String createSQLTuningSet(DatabaseDetails databaseDetails);
+
+	String loadSQLTuningSet(DatabaseDetails databaseDetails);
 }

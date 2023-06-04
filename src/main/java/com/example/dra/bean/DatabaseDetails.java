@@ -15,6 +15,7 @@ public class DatabaseDetails {
     private String username;
     private String url;
     private String sqlSetName;
+    private String serviceName;
     private List<String> queries;
 
     @Override
@@ -26,6 +27,8 @@ public class DatabaseDetails {
                 ", username='" + username + '\'' +
                 ", url='" + url + '\'' +
                 ", sqlSetName='" + sqlSetName + '\'' +
+                ", serviceName='" + serviceName + '\'' +
+                ", queries=" + queries +
                 '}';
     }
 }
