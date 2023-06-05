@@ -105,7 +105,6 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 				"(connect_data=(service_name="+databaseDetails.getServiceName()+"))\n" +
 				"(security=(ssl_server_dn_match=yes)))";
 		System.out.println(CLOUD_DB_URL_STR);
-		databaseDetails.setUrl(CLOUD_DB_URL_STR);
 
 		//String url = "jdbc:oracle:thin:@"+databaseDetails.getDatabaseName()+ "_tp?tns_admin=C:/Oracle/atp";
 		Connection connection = null;
@@ -156,13 +155,20 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 	@Override
 	public String loadSQLTuningSet(DatabaseDetails databaseDetails) {
 
+		String CLOUD_DB_URL_STR = "jdbc:oracle:thin:@(description= (retry_count=20)(retry_delay=3)(address=(protocol=tcps)\n" +
+				"(port="+databaseDetails.getPort()+")(host="+databaseDetails.getHostname()+"))\n" +
+				"(connect_data=(service_name="+databaseDetails.getServiceName()+"))\n" +
+				"(security=(ssl_server_dn_match=yes)))";
+		System.out.println(CLOUD_DB_URL_STR);
+
+		//String url = "jdbc:oracle:thin:@"+databaseDetails.getDatabaseName()+ "_tp?tns_admin=C:/Oracle/atp";
 		Connection connection = null;
 		CallableStatement callableStatement = null;
 		String resultLoadSts = "";
 		try {
 			// Establishing a connection to the database
 			System.out.println("Password :: " + PASSWORD);
-			connection = DriverManager.getConnection(databaseDetails.getUrl(), databaseDetails.getUsername(), PASSWORD);
+			connection = DriverManager.getConnection(CLOUD_DB_URL_STR, databaseDetails.getUsername(), PASSWORD);
 			//connection = DriverManager.getConnection(url, username, password);
 			// Creating a CallableStatement for invoking DBMS_SQLTUNE
 			String SQL_STORED_PROC_STS
@@ -196,12 +202,18 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 
 	private String executeQueries(DatabaseDetails databaseDetails) {
 
+		String CLOUD_DB_URL_STR = "jdbc:oracle:thin:@(description= (retry_count=20)(retry_delay=3)(address=(protocol=tcps)\n" +
+				"(port="+databaseDetails.getPort()+")(host="+databaseDetails.getHostname()+"))\n" +
+				"(connect_data=(service_name="+databaseDetails.getServiceName()+"))\n" +
+				"(security=(ssl_server_dn_match=yes)))";
+
+		//String url = "jdbc:oracle:thin:@"+databaseDetails.getDatabaseName()+ "_tp?tns_admin=C:/Oracle/atp";
 		Connection connection = null;
 		CallableStatement callableStatement = null;
 
 		try {
 			// Establishing a connection to the database
-			connection = DriverManager.getConnection(databaseDetails.getUrl(), databaseDetails.getUsername(), PASSWORD);
+			connection = DriverManager.getConnection(CLOUD_DB_URL_STR, databaseDetails.getUsername(), PASSWORD);
 
 			Statement s = connection.createStatement();
 			for (String query : databaseDetails.getQueries()) {
@@ -230,6 +242,12 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 	}
 
 	public String LoadSQLTuningSet(DatabaseDetails databaseDetails) {
+
+		String CLOUD_DB_URL_STR = "jdbc:oracle:thin:@(description= (retry_count=20)(retry_delay=3)(address=(protocol=tcps)\n" +
+				"(port="+databaseDetails.getPort()+")(host="+databaseDetails.getHostname()+"))\n" +
+				"(connect_data=(service_name="+databaseDetails.getServiceName()+"))\n" +
+				"(security=(ssl_server_dn_match=yes)))";
+
 		String LOAD_STS_PROC = "declare\n" +
 				"mycur dbms_sqltune.sqlset_cursor;\n" +
 				"begin\n" +
@@ -248,7 +266,7 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 
 		try {
 			// Establishing a connection to the database
-			connection = DriverManager.getConnection(databaseDetails.getUrl(), databaseDetails.getUsername(), PASSWORD);
+			connection = DriverManager.getConnection(CLOUD_DB_URL_STR, databaseDetails.getUsername(), PASSWORD);
 			// Creating a CallableStatement for invoking DBMS_SQLTUNE
 			callableStatement = connection.prepareCall(LOAD_STS_PROC);
 			callableStatement.execute();
