@@ -202,13 +202,18 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 
 	private String executeQueries(DatabaseDetails databaseDetails) {
 
-		String url = "jdbc:oracle:thin:@"+databaseDetails.getDatabaseName()+ "_tp?tns_admin=C:/Oracle/atp";
+		String CLOUD_DB_URL_STR = "jdbc:oracle:thin:@(description= (retry_count=20)(retry_delay=3)(address=(protocol=tcps)\n" +
+				"(port="+databaseDetails.getPort()+")(host="+databaseDetails.getHostname()+"))\n" +
+				"(connect_data=(service_name="+databaseDetails.getServiceName()+"))\n" +
+				"(security=(ssl_server_dn_match=yes)))";
+
+		//String url = "jdbc:oracle:thin:@"+databaseDetails.getDatabaseName()+ "_tp?tns_admin=C:/Oracle/atp";
 		Connection connection = null;
 		CallableStatement callableStatement = null;
 
 		try {
 			// Establishing a connection to the database
-			connection = DriverManager.getConnection(url, databaseDetails.getUsername(), PASSWORD);
+			connection = DriverManager.getConnection(CLOUD_DB_URL_STR, databaseDetails.getUsername(), PASSWORD);
 
 			Statement s = connection.createStatement();
 			for (String query : databaseDetails.getQueries()) {
