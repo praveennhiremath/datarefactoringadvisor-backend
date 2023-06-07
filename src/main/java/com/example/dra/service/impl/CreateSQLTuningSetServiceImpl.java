@@ -4,6 +4,7 @@ import com.example.dra.bean.DatabaseDetails;
 import com.example.dra.dto.Tables18NodesDto;
 import com.example.dra.repository.Tables18NodesRepository;
 import jakarta.annotation.Resource;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -22,6 +23,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 @Service
 public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService {
@@ -36,6 +38,8 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 
 	@Value("${spring.datasource.password}")
 	String PASSWORD;
+
+	//Logger logger = LoggerFactory.getLogger(CreateSQLTuningSetServiceImpl.class);
 	
 	private static final String SQL_STORED_PROC = ""
             + " CREATE OR REPLACE PROCEDURE get_book_by_id2 "
@@ -106,17 +110,18 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 
 		Connection connection = null;
 		CallableStatement callableStatement = null;
-		boolean result = false;
+		boolean result = true;
 		try {
 			// Establishing a connection to the database
 			connection = DriverManager.getConnection(CLOUD_DB_URL_STR, databaseDetails.getUsername(), PASSWORD);
 			// Creating a CallableStatement for invoking DBMS_SQLTUNE
-			String SQL_STORED_PROC_STS = "CALL DBMS_SQLTUNE.create_sqlset(sqlset_name => '"+databaseDetails.getSqlSetName()+"')";
+			String SQL_STORED_PROC_STS = "CALL DBMS_SQLTUNE.CREATE_SQLSET(sqlset_name => '"+databaseDetails.getSqlSetName()+"')";
 			callableStatement = connection.prepareCall(SQL_STORED_PROC_STS);
 			result = callableStatement.execute();
 			System.out.println("result :: " + result);
 
 		} catch (SQLException e) {
+			System.out.println("SQLException, Error Code :: "+e.getErrorCode());
 			e.printStackTrace();
 		} finally {
 			// Closing the resources
@@ -133,9 +138,56 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 		}
 
 		if(!result) {
-			return "SQL TUNING SET CREATED";
+			return "SQL Tuning Set '"+ databaseDetails.getSqlSetName() +"' Created";
 		} else {
-			return "SQL TUNING SET NOT CREATED";
+			return "Error in Creating SQL Tuning Set '"+databaseDetails.getSqlSetName()+"'";
+		}
+	}
+
+	@Override
+	public String dropSQLTuningSet(DatabaseDetails databaseDetails) {
+		{
+
+			String CLOUD_DB_URL_STR = "jdbc:oracle:thin:@(description= (retry_count=20)(retry_delay=3)(address=(protocol=tcps)\n" +
+					"(port="+databaseDetails.getPort()+")(host="+databaseDetails.getHostname()+"))\n" +
+					"(connect_data=(service_name="+databaseDetails.getServiceName()+"))\n" +
+					"(security=(ssl_server_dn_match=yes)))";
+			System.out.println(CLOUD_DB_URL_STR);
+
+			Connection connection = null;
+			CallableStatement callableStatement = null;
+			boolean result = false;
+			try {
+				// Establishing a connection to the database
+				connection = DriverManager.getConnection(CLOUD_DB_URL_STR, databaseDetails.getUsername(), PASSWORD);
+				// Creating a CallableStatement for invoking DBMS_SQLTUNE
+				String SQL_STORED_PROC_STS = "CALL DBMS_SQLTUNE.DROP_SQLSET(sqlset_name => '"+databaseDetails.getSqlSetName()+"')";
+				callableStatement = connection.prepareCall(SQL_STORED_PROC_STS);
+				result = callableStatement.execute();
+				System.out.println("result :: " + result);
+
+			} catch (SQLException e) {
+				System.out.println("SQLException, Error Code :: "+e.getErrorCode());
+				e.printStackTrace();
+			} finally {
+				// Closing the resources
+				try {
+					if (callableStatement != null) {
+						callableStatement.close();
+					}
+					if (connection != null) {
+						connection.close();
+					}
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+
+			if(!result) {
+				return "STS '"+ databaseDetails.getSqlSetName() +"' Dropped";
+			} else {
+				return "Error in Dropping STS '"+databaseDetails.getSqlSetName()+"'";
+			}
 		}
 	}
 
@@ -154,16 +206,12 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 		try {
 			// Establishing a connection to the database
 			connection = DriverManager.getConnection(CLOUD_DB_URL_STR, databaseDetails.getUsername(), PASSWORD);
-			// Creating a CallableStatement for invoking DBMS_SQLTUNE
-			String SQL_STORED_PROC_STS = "CALL DBMS_SQLTUNE.create_sqlset(sqlset_name => '"+databaseDetails.getSqlSetName()+"')";
-			callableStatement = connection.prepareCall(SQL_STORED_PROC_STS);
-			callableStatement.execute();
-
 			String resultExecute = executeQueries(databaseDetails);
 			resultLoadSts = LoadSQLTuningSet(databaseDetails);
 			System.out.println("resultLoadSts :: " + resultLoadSts);
 			return resultLoadSts;
 		} catch (SQLException e) {
+			System.out.println("SQLException, Error Code :: "+e.getErrorCode());
 			e.printStackTrace();
 		} finally {
 			// Closing the resources
@@ -181,6 +229,8 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 
 		return resultLoadSts;
 	}
+
+
 
 	private String executeQueries(DatabaseDetails databaseDetails) {
 
@@ -203,6 +253,7 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 			s.executeBatch();
 
 		} catch (SQLException e) {
+			System.out.println("SQLException, Error Code :: "+e.getErrorCode());
 			e.printStackTrace();
 		} finally {
 			// Closing the resources
@@ -243,14 +294,15 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 
 		Connection connection = null;
 		CallableStatement callableStatement = null;
-
+		boolean result = true;
 		try {
 			// Establishing a connection to the database
 			connection = DriverManager.getConnection(CLOUD_DB_URL_STR, databaseDetails.getUsername(), PASSWORD);
 			// Creating a CallableStatement for invoking DBMS_SQLTUNE
 			callableStatement = connection.prepareCall(LOAD_STS_PROC);
-			callableStatement.execute();
+			result = callableStatement.execute();
 		} catch (SQLException e) {
+			System.out.println("SQLException, Error Code :: "+e.getErrorCode());
 			e.printStackTrace();
 		} finally {
 			// Closing the resources
@@ -265,7 +317,11 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 				e.printStackTrace();
 			}
 		}
-		return "Loaded STS Successfully";
+		if(!result) {
+			return "SQL Tuning Set '"+ databaseDetails.getSqlSetName() +"' Loaded Successfully";
+		} else {
+			return "Error in Loading SQL Tuning Set '"+databaseDetails.getSqlSetName()+"'";
+		}
 	}
 
 }

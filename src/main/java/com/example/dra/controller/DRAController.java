@@ -29,6 +29,12 @@ public class DRAController {
 		return result;
 	}
 
+	@PostMapping("/dropsqltuningset")
+	public String dropSQLTuningSet(@RequestBody DatabaseDetails databaseDetails) {
+		String result = createSQLTuningSetService.dropSQLTuningSet(databaseDetails);
+		return result;
+	}
+
 	@PostMapping("/loadsqltuningset")
 	public String loadSQLTuningSet(@RequestBody DatabaseDetails databaseDetails) {
 		String result = createSQLTuningSetService.loadSQLTuningSet(databaseDetails);
