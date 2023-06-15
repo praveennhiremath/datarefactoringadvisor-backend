@@ -3,6 +3,7 @@ package com.example.dra.service.impl;
 import com.example.dra.bean.DatabaseDetails;
 import com.example.dra.dto.Tables18NodesDto;
 import com.example.dra.repository.Tables18NodesRepository;
+import com.example.dra.utils.FileUtil;
 import jakarta.annotation.Resource;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,11 +17,7 @@ import com.example.dra.service.CreateSQLTuningSetService;
 
 import jakarta.annotation.PostConstruct;
 
-import java.sql.CallableStatement;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -37,7 +34,7 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 	private SimpleJdbcCall simpleJdbcCall;
 
 	@Value("${spring.datasource.password}")
-	String PASSWORD;
+	String PASSWORD1;
 
 	//Logger logger = LoggerFactory.getLogger(CreateSQLTuningSetServiceImpl.class);
 	
@@ -102,18 +99,15 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 	@Override
 	public String createSQLTuningSet(DatabaseDetails databaseDetails) {
 
-		String CLOUD_DB_URL_STR = "jdbc:oracle:thin:@(description= (retry_count=20)(retry_delay=3)(address=(protocol=tcps)\n" +
-				"(port="+databaseDetails.getPort()+")(host="+databaseDetails.getHostname()+"))\n" +
-				"(connect_data=(service_name="+databaseDetails.getServiceName()+"))\n" +
-				"(security=(ssl_server_dn_match=yes)))";
-		System.out.println(CLOUD_DB_URL_STR);
+		String dbUrlConnectionStr = formDbConnectionStr(databaseDetails);
+		//System.out.println(dbUrlConnectionStr);
 
 		Connection connection = null;
 		CallableStatement callableStatement = null;
 		boolean result = true;
 		try {
 			// Establishing a connection to the database
-			connection = DriverManager.getConnection(CLOUD_DB_URL_STR, databaseDetails.getUsername(), PASSWORD);
+			connection = DriverManager.getConnection(dbUrlConnectionStr, databaseDetails.getUsername(), databaseDetails.getPassword());
 			// Creating a CallableStatement for invoking DBMS_SQLTUNE
 			String SQL_STORED_PROC_STS = "CALL DBMS_SQLTUNE.CREATE_SQLSET(sqlset_name => '"+databaseDetails.getSqlSetName()+"')";
 			callableStatement = connection.prepareCall(SQL_STORED_PROC_STS);
@@ -144,22 +138,27 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 		}
 	}
 
+	private String formDbConnectionStr(DatabaseDetails databaseDetails) {
+		String CLOUD_DB_URL_STR = "jdbc:oracle:thin:@(description= (retry_count=20)(retry_delay=3)(address=(protocol=tcps)\n" +
+				"(port="+databaseDetails.getPort()+")(host="+databaseDetails.getHostname()+"))\n" +
+				"(connect_data=(service_name="+databaseDetails.getServiceName()+"))\n" +
+				"(security=(ssl_server_dn_match=yes)))";
+		return CLOUD_DB_URL_STR;
+	}
+
 	@Override
 	public String dropSQLTuningSet(DatabaseDetails databaseDetails) {
 		{
 
-			String CLOUD_DB_URL_STR = "jdbc:oracle:thin:@(description= (retry_count=20)(retry_delay=3)(address=(protocol=tcps)\n" +
-					"(port="+databaseDetails.getPort()+")(host="+databaseDetails.getHostname()+"))\n" +
-					"(connect_data=(service_name="+databaseDetails.getServiceName()+"))\n" +
-					"(security=(ssl_server_dn_match=yes)))";
-			System.out.println(CLOUD_DB_URL_STR);
+			String dbUrlConnectionStr = formDbConnectionStr(databaseDetails);
+			//System.out.println(dbUrlConnectionStr);
 
 			Connection connection = null;
 			CallableStatement callableStatement = null;
 			boolean result = false;
 			try {
 				// Establishing a connection to the database
-				connection = DriverManager.getConnection(CLOUD_DB_URL_STR, databaseDetails.getUsername(), PASSWORD);
+				connection = DriverManager.getConnection(dbUrlConnectionStr, databaseDetails.getUsername(), databaseDetails.getPassword());
 				// Creating a CallableStatement for invoking DBMS_SQLTUNE
 				String SQL_STORED_PROC_STS = "CALL DBMS_SQLTUNE.DROP_SQLSET(sqlset_name => '"+databaseDetails.getSqlSetName()+"')";
 				callableStatement = connection.prepareCall(SQL_STORED_PROC_STS);
@@ -191,22 +190,21 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 		}
 	}
 
+
+
 	@Override
 	public String loadSQLTuningSet(DatabaseDetails databaseDetails) {
 
-		String CLOUD_DB_URL_STR = "jdbc:oracle:thin:@(description= (retry_count=20)(retry_delay=3)(address=(protocol=tcps)\n" +
-				"(port="+databaseDetails.getPort()+")(host="+databaseDetails.getHostname()+"))\n" +
-				"(connect_data=(service_name="+databaseDetails.getServiceName()+"))\n" +
-				"(security=(ssl_server_dn_match=yes)))";
-		System.out.println(CLOUD_DB_URL_STR);
+		String dbUrlConnectionStr = formDbConnectionStr(databaseDetails);
+		//System.out.println(dbUrlConnectionStr);
 
 		Connection connection = null;
 		CallableStatement callableStatement = null;
 		String resultLoadSts = "";
 		try {
 			// Establishing a connection to the database
-			connection = DriverManager.getConnection(CLOUD_DB_URL_STR, databaseDetails.getUsername(), PASSWORD);
-			String resultExecute = executeQueries(databaseDetails);
+			connection = DriverManager.getConnection(dbUrlConnectionStr, databaseDetails.getUsername(), databaseDetails.getPassword());
+			String resultExecute = executeQueries(databaseDetails,null);
 			resultLoadSts = LoadSQLTuningSet(databaseDetails);
 			System.out.println("resultLoadSts :: " + resultLoadSts);
 			return resultLoadSts;
@@ -232,25 +230,24 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 
 
 
-	private String executeQueries(DatabaseDetails databaseDetails) {
+	public String executeQueries(DatabaseDetails databaseDetails, List<String> queries) {
 
-		String CLOUD_DB_URL_STR = "jdbc:oracle:thin:@(description= (retry_count=20)(retry_delay=3)(address=(protocol=tcps)\n" +
-				"(port="+databaseDetails.getPort()+")(host="+databaseDetails.getHostname()+"))\n" +
-				"(connect_data=(service_name="+databaseDetails.getServiceName()+"))\n" +
-				"(security=(ssl_server_dn_match=yes)))";
+		System.out.println("Executing Queriessss for Load STS");
+		String dbUrlConnectionStr = formDbConnectionStr(databaseDetails);
+		//System.out.println(dbUrlConnectionStr);
 
 		Connection connection = null;
 		CallableStatement callableStatement = null;
 
 		try {
 			// Establishing a connection to the database
-			connection = DriverManager.getConnection(CLOUD_DB_URL_STR, databaseDetails.getUsername(), PASSWORD);
-
+			connection = DriverManager.getConnection(dbUrlConnectionStr, databaseDetails.getUsername(), databaseDetails.getPassword());
 			Statement s = connection.createStatement();
-			for (String query : databaseDetails.getQueries()) {
-				s.addBatch(query);
+
+			for (String query : queries) {
+				System.out.println("Query : " + query);
+				s.executeQuery(query);
 			}
-			s.executeBatch();
 
 		} catch (SQLException e) {
 			System.out.println("SQLException, Error Code :: "+e.getErrorCode());
@@ -274,10 +271,9 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 
 	public String LoadSQLTuningSet(DatabaseDetails databaseDetails) {
 
-		String CLOUD_DB_URL_STR = "jdbc:oracle:thin:@(description= (retry_count=20)(retry_delay=3)(address=(protocol=tcps)\n" +
-				"(port="+databaseDetails.getPort()+")(host="+databaseDetails.getHostname()+"))\n" +
-				"(connect_data=(service_name="+databaseDetails.getServiceName()+"))\n" +
-				"(security=(ssl_server_dn_match=yes)))";
+		System.out.println("IN LoadSQLTuningSet");
+		String dbUrlConnectionStr = formDbConnectionStr(databaseDetails);
+		//System.out.println(dbUrlConnectionStr);
 
 		String LOAD_STS_PROC = "declare\n" +
 				"mycur dbms_sqltune.sqlset_cursor;\n" +
@@ -285,19 +281,20 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 				"open mycur for\n" +
 				"select value (P)\n" +
 				"from table" +
-				"(dbms_sqltune.select_cursor_cache('parsing_schema_name <> ''"+databaseDetails.getUsername()+"'' " +
-				"and elapsed_time > 250', null, null, null, null,1, null, 'ALL')) P;\n" +
+				"(dbms_sqltune.select_cursor_cache('parsing_schema_name =upper(''"+databaseDetails.getUsername()+"'') " +
+				"and sql_text not like ''%OPT_DYN%''', null, null, null, null,1, null, 'ALL', 'NO_RECURSIVE_SQL')) P;\n" +
 				"dbms_sqltune.load_sqlset(sqlset_name => '"+databaseDetails.getSqlSetName()+"', " +
 				"populate_cursor => mycur," +
 				"sqlset_owner => '"+databaseDetails.getUsername()+"');\n" +
 				"end;\n";
 
+		System.out.println("Load STS Query :: "+ LOAD_STS_PROC);
 		Connection connection = null;
 		CallableStatement callableStatement = null;
 		boolean result = true;
 		try {
 			// Establishing a connection to the database
-			connection = DriverManager.getConnection(CLOUD_DB_URL_STR, databaseDetails.getUsername(), PASSWORD);
+			connection = DriverManager.getConnection(dbUrlConnectionStr, databaseDetails.getUsername(), databaseDetails.getPassword());
 			// Creating a CallableStatement for invoking DBMS_SQLTUNE
 			callableStatement = connection.prepareCall(LOAD_STS_PROC);
 			result = callableStatement.execute();
@@ -323,5 +320,56 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 			return "Error in Loading SQL Tuning Set '"+databaseDetails.getSqlSetName()+"'";
 		}
 	}
+
+	@Override
+	public String collectSQLTuningSet(DatabaseDetails databaseDetails) {
+		System.out.println("IN COLLECT SQL TUNING SET");
+		String dbUrlConnectionStr = formDbConnectionStr(databaseDetails);
+		System.out.println(dbUrlConnectionStr);
+
+		Connection connection = null;
+		CallableStatement callableStatement = null;
+		boolean result = true;
+		String resultLoadSts = "";
+		try {
+			// Establishing a connection to the database
+			connection = DriverManager.getConnection(dbUrlConnectionStr, databaseDetails.getUsername(), databaseDetails.getPassword());
+			// Creating a CallableStatement for invoking DBMS_SQLTUNE
+			String SQL_STORED_PROC_STS = "CALL DBMS_SQLTUNE.CREATE_SQLSET(sqlset_name => '" + databaseDetails.getSqlSetName() + "')";
+			callableStatement = connection.prepareCall(SQL_STORED_PROC_STS);
+			result = callableStatement.execute();
+			System.out.println("result :: " + result);
+			if (!result) {
+				List<String> queries = FileUtil.readLoadStsSimulateFile();
+				String resultExecute = executeQueries(databaseDetails, queries);
+				System.out.println(resultExecute);
+				resultLoadSts = LoadSQLTuningSet(databaseDetails);
+				System.out.println(resultLoadSts);
+				new GraphConstructorServiceImpl().constructGraph(databaseDetails);
+			}
+		} catch (SQLException e) {
+			System.out.println("SQLException, Error Code :: " + e.getErrorCode());
+			e.printStackTrace();
+		} finally {
+			// Closing the resources
+			try {
+				if (callableStatement != null) {
+					callableStatement.close();
+				}
+				if (connection != null) {
+					connection.close();
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+
+		if (!result) {
+			return "Collected SQL Tuning Set for '" + databaseDetails.getSqlSetName() + "' ";
+		} else {
+			return "Error in Collecting SQL Tuning Set '" + databaseDetails.getSqlSetName() + "'";
+		}
+	}
+
 
 }

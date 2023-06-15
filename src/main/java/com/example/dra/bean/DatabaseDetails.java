@@ -13,6 +13,7 @@ public class DatabaseDetails {
     private String hostname;
     private int port;
     private String username;
+    private String password;
     private String url;
     private String sqlSetName;
     private String serviceName;

@@ -40,5 +40,11 @@ public class DRAController {
 		String result = createSQLTuningSetService.loadSQLTuningSet(databaseDetails);
 		return result;
 	}
+
+	@PostMapping("/collectsqltuningset")
+	public String collectSQLTuningSet(@RequestBody DatabaseDetails databaseDetails) {
+		String result = createSQLTuningSetService.collectSQLTuningSet(databaseDetails);
+		return result;
+	}
 	
 }

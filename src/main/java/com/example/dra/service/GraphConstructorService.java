@@ -12,7 +12,7 @@ public interface GraphConstructorService {
 
     public String createHelperViewForAffinityCalculation(DatabaseDetails databaseDetails);
 
-    public String createComputeAffinityProcedure(DatabaseDetails databaseDetails);
+    public int createComputeAffinityProcedure(DatabaseDetails databaseDetails);
 
-    public String executeProcedure(DatabaseDetails databaseDetails, String procedure);
+    //public String executeProcedure(DatabaseDetails databaseDetails, String procedure);
 }

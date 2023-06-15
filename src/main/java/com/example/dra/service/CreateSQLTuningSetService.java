@@ -18,4 +18,6 @@ public interface CreateSQLTuningSetService {
 	String loadSQLTuningSet(DatabaseDetails databaseDetails);
 
 	String dropSQLTuningSet(DatabaseDetails databaseDetails);
+
+	String collectSQLTuningSet(DatabaseDetails databaseDetails);
 }
