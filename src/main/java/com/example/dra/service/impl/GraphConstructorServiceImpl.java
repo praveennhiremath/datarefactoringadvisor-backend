@@ -78,16 +78,16 @@ public class GraphConstructorServiceImpl implements GraphConstructorService {
     }
 
     private boolean checkTableIfExists(DatabaseDetails databaseDetails, String tableName) {
-        String query = "select count(*) from user_tables where table_name='"+tableName+"';";
+        String query = "select count(*) from user_tables where table_name='"+tableName+"'";
         String dbUrlConnectionStr = DBUtils.formDbConnectionStr(databaseDetails);
-
+        boolean isTableExists = false;
         Connection connection = null;
         try {
             // Establishing a connection to the database
             connection = DriverManager.getConnection(dbUrlConnectionStr, databaseDetails.getUsername(), databaseDetails.getPassword());
             Statement s = connection.createStatement();
             ResultSet result = s.executeQuery(query);
-            return result.getInt(1) != 0;
+            isTableExists = result.getInt(1) != 0;
         } catch (SQLException e) {
             System.out.println("SQLException, Error Code :: "+e.getErrorCode());
             e.printStackTrace();
@@ -101,7 +101,7 @@ public class GraphConstructorServiceImpl implements GraphConstructorService {
                 e.printStackTrace();
             }
         }
-        return false;
+        return isTableExists;
     }
 
     private boolean executeSQLQuery(DatabaseDetails databaseDetails, String query) {
