@@ -2,25 +2,21 @@ package com.example.dra.service.impl;
 
 import com.example.dra.bean.DatabaseDetails;
 import com.example.dra.dto.Tables18NodesDto;
+import com.example.dra.entity.Tables18NodesEntity;
 import com.example.dra.repository.Tables18NodesRepository;
+import com.example.dra.service.CreateSQLTuningSetService;
 import com.example.dra.utils.FileUtil;
+import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcCall;
 import org.springframework.stereotype.Service;
 
-import com.example.dra.entity.Tables18NodesEntity;
-import com.example.dra.service.CreateSQLTuningSetService;
-
-import jakarta.annotation.PostConstruct;
-
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 
 @Service
 public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService {
@@ -35,6 +31,9 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 
 	@Value("${spring.datasource.password}")
 	String PASSWORD1;
+
+	@Value("${dra.load.sts.sql.file.path}")
+	String sqlFilePath;
 
 	//Logger logger = LoggerFactory.getLogger(CreateSQLTuningSetServiceImpl.class);
 	
@@ -325,7 +324,7 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 	public String collectSQLTuningSet(DatabaseDetails databaseDetails) {
 		System.out.println("IN COLLECT SQL TUNING SET");
 		String dbUrlConnectionStr = formDbConnectionStr(databaseDetails);
-		System.out.println(dbUrlConnectionStr);
+		//System.out.println(dbUrlConnectionStr);
 
 		Connection connection = null;
 		CallableStatement callableStatement = null;
@@ -340,7 +339,7 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 			result = callableStatement.execute();
 			System.out.println("result :: " + result);
 			if (!result) {
-				List<String> queries = FileUtil.readLoadStsSimulateFile();
+				List<String> queries = new FileUtil().readLoadStsSimulateFile(sqlFilePath);
 				String resultExecute = executeQueries(databaseDetails, queries);
 				System.out.println(resultExecute);
 				resultLoadSts = LoadSQLTuningSet(databaseDetails);

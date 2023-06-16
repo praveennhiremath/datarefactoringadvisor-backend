@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 
 import java.sql.*;
 
+
 public class GraphConstructorServiceImpl implements GraphConstructorService {
 
     @Value("${spring.datasource.password}")
