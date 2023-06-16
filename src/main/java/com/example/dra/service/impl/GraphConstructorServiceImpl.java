@@ -22,18 +22,28 @@ public class GraphConstructorServiceImpl implements GraphConstructorService {
 
         System.out.println("In constructGraph");
         // create metadata tables
+        System.out.println("Creating Metadata Tables");
         createMetadataTables(databaseDetails);
 
         // Populate Data into Nodes table
+        System.out.println("Populating Data into Nodes Table");
         String populateNodesResult = populateDataInNodesTable(databaseDetails);
 
         // Create Helper view, helpful for calculating affinities
+        System.out.println("Creating Helper View for Affinity Calculation");
         String createHelperViewResult = createHelperViewForAffinityCalculation(databaseDetails);
 
         // Calculate affinities
+        System.out.println("Creating Compute Affinity Procedure");
         int createCompAffinityProcResult = createComputeAffinityProcedure(databaseDetails);
 
+        System.out.println("Executing Compute Affinity Procedure");
         executeProcedure(databaseDetails, createCompAffinityProcResult);
+        System.out.println("Compute Affinity Completed For Below Details");
+        System.out.println("-------------------------");
+        System.out.println("Username :: "+ databaseDetails.getUsername());
+        System.out.println("SQL Tuning Set :: "+ databaseDetails.getSqlSetName());
+        System.out.println("-------------------------");
         return "GRAPH CONSTRUCTED";
     }
 
