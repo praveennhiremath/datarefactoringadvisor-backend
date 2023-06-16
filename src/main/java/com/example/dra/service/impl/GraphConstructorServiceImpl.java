@@ -95,9 +95,18 @@ public class GraphConstructorServiceImpl implements GraphConstructorService {
         try {
             // Establishing a connection to the database
             connection = DriverManager.getConnection(dbUrlConnectionStr, databaseDetails.getUsername(), databaseDetails.getPassword());
-            Statement s = connection.createStatement();
+
+            DatabaseMetaData metadata = connection.getMetaData();
+
+            // Use the metadata to check if the table exists
+            try (ResultSet resultSet = metadata.getTables(null, null, tableName, null)) {
+                if (resultSet.next()) {
+                    isTableExists = true;
+                }
+            }
+            /*Statement s = connection.createStatement();
             ResultSet result = s.executeQuery(query);
-            isTableExists = result.getInt(1) != 0;
+            isTableExists = result.getInt(1) != 0;*/
         } catch (SQLException e) {
             System.out.println("SQLException, Error Code :: "+e.getErrorCode());
             e.printStackTrace();
