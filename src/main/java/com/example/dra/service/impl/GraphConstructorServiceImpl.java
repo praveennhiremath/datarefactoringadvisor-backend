@@ -145,7 +145,6 @@ public class GraphConstructorServiceImpl implements GraphConstructorService {
     private int executeUpdateSQLQuery(DatabaseDetails databaseDetails, String query) {
 
         String dbUrlConnectionStr = DBUtils.formDbConnectionStr(databaseDetails);
-        System.out.println(dbUrlConnectionStr);
 
         Connection connection = null;
         CallableStatement callableStatement = null;
@@ -379,7 +378,6 @@ public class GraphConstructorServiceImpl implements GraphConstructorService {
     public String executeProcedure(DatabaseDetails databaseDetails, int procedure) {
 
         String dbUrlConnectionStr = DBUtils.formDbConnectionStr(databaseDetails);
-        System.out.println(dbUrlConnectionStr);
 
         String SQL_STORED_PROC_STS = "CALL compute_affinity_tkdra()";
         Connection connection = null;

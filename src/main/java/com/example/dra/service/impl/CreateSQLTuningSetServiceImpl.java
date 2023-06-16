@@ -322,9 +322,13 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 
 	@Override
 	public String collectSQLTuningSet(DatabaseDetails databaseDetails) {
-		System.out.println("IN COLLECT SQL TUNING SET");
+		System.out.println("-----------------------------------------------");
+		System.out.println("Input Details of COLLECT SQL TUNING SET API ");
 		String dbUrlConnectionStr = formDbConnectionStr(databaseDetails);
-		//System.out.println(dbUrlConnectionStr);
+		System.out.println("DB Connection String :: "+dbUrlConnectionStr);
+		System.out.println("Username :: "+ databaseDetails.getUsername());
+		System.out.println("SQL Tuning Set :: "+ databaseDetails.getSqlSetName());
+		System.out.println("-----------------------------------------------");
 
 		Connection connection = null;
 		CallableStatement callableStatement = null;
