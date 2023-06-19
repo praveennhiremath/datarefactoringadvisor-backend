@@ -374,5 +374,44 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 		}
 	}
 
+	@Override
+	public List<String> getSQLTuningSetList(DatabaseDetails databaseDetails) {
+		System.out.println("-----------------------------------------------");
+		System.out.println("Input Details of GET SQL TUNING SET LIST API ");
+		String dbUrlConnectionStr = formDbConnectionStr(databaseDetails);
+		System.out.println("DB Connection String :: "+dbUrlConnectionStr);
+		System.out.println("Username :: "+ databaseDetails.getUsername());
+		System.out.println("SQL Tuning Set :: "+ databaseDetails.getSqlSetName());
+		System.out.println("-----------------------------------------------");
+		String getSQLTuningSetListQuery = "SELECT ID, NAME, OWNER FROM DBA_SQLSET_DEFINITIONS";
+		Connection connection = null;
+		List<String> sqlTuningSets = new ArrayList<>();
+		try {
+			// Establishing a connection to the database
+			connection = DriverManager.getConnection(dbUrlConnectionStr, databaseDetails.getUsername(), databaseDetails.getPassword());
+
+			Statement s = connection.createStatement();
+			ResultSet resultSet = s.executeQuery(getSQLTuningSetListQuery);
+			while (resultSet.next()) {
+				// Retrieve column values from the current row
+				sqlTuningSets.add(resultSet.getString("NAME"));
+			}
+			return sqlTuningSets;
+		} catch (SQLException e) {
+			System.out.println("SQLException, Error Code :: " + e.getErrorCode());
+			e.printStackTrace();
+		} finally {
+			// Closing the resources
+			try {
+				if (connection != null) {
+					connection.close();
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+
+		return sqlTuningSets;
+	}
 
 }

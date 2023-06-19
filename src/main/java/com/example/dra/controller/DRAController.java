@@ -2,6 +2,8 @@ package com.example.dra.controller;
 
 import com.example.dra.bean.DatabaseDetails;
 import com.example.dra.dto.Tables18NodesDto;
+import com.example.dra.entity.Edges;
+import com.example.dra.service.GraphConstructorService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,6 +18,9 @@ public class DRAController {
 	
 	@Autowired
 	CreateSQLTuningSetService createSQLTuningSetService;
+
+	@Autowired
+	GraphConstructorService graphConstructorService;
 	
 	@GetMapping("/gettablename")
 	public List<Tables18NodesDto> getTableName() {
@@ -46,5 +51,14 @@ public class DRAController {
 		String result = createSQLTuningSetService.collectSQLTuningSet(databaseDetails);
 		return result;
 	}
-	
+
+	@GetMapping("/getsqltuningsetlist")
+	public List<String> getSQLTuningSetList(@RequestBody DatabaseDetails databaseDetails) {
+		return createSQLTuningSetService.getSQLTuningSetList(databaseDetails);
+	}
+
+	@GetMapping("/viewgraph")
+	public List<Edges> viewGraph(@RequestBody DatabaseDetails databaseDetails) {
+		return graphConstructorService.viewGraph(databaseDetails);
+	}
 }

@@ -1,17 +1,25 @@
 package com.example.dra.service.impl;
 
 import com.example.dra.bean.DatabaseDetails;
+import com.example.dra.entity.Edges;
+//import com.example.dra.repository.EdgesRepository;
 import com.example.dra.service.GraphConstructorService;
 import com.example.dra.utils.DBUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
-
+@Service
 public class GraphConstructorServiceImpl implements GraphConstructorService {
 
     @Value("${spring.datasource.password}")
     String PASSWORD1;
+    //@Autowired
+    //EdgesRepository edgesRepository;
 
     public String processSTSMetadata(DatabaseDetails databaseDetails) {
         return constructGraph(databaseDetails);
@@ -382,6 +390,62 @@ public class GraphConstructorServiceImpl implements GraphConstructorService {
         System.out.println("COMPUTE_AFFINITY_PROCEDURE :: " + COMPUTE_AFFINITY_PROCEDURE);
         int result = executeUpdateSQLQuery(databaseDetails, COMPUTE_AFFINITY_PROCEDURE);
         return result;
+    }
+
+    @Override
+    public List<Edges> viewGraph(DatabaseDetails databaseDetails) {
+        System.out.println("-----------------------------------------------");
+        System.out.println("Input Details of GET SQL TUNING SET LIST API ");
+        String dbUrlConnectionStr = formDbConnectionStr(databaseDetails);
+        System.out.println("DB Connection String :: "+dbUrlConnectionStr);
+        System.out.println("Username :: "+ databaseDetails.getUsername());
+        System.out.println("SQL Tuning Set :: "+ databaseDetails.getSqlSetName());
+        System.out.println("-----------------------------------------------");
+        String getSQLTuningSetListQuery = "SELECT * FROM "+databaseDetails.getUsername()+".EDGES" +
+                " WHERE TABLE_SET_NAME = '"+ databaseDetails.getSqlSetName() + "'";
+        System.out.println("getSQLTuningSetListQuery :: " + getSQLTuningSetListQuery);
+        Connection connection = null;
+        List<Edges> edges = new ArrayList<>();
+        try {
+            // Establishing a connection to the database
+            connection = DriverManager.getConnection(dbUrlConnectionStr, databaseDetails.getUsername(), databaseDetails.getPassword());
+            Statement s = connection.createStatement();
+            ResultSet resultSet = s.executeQuery(getSQLTuningSetListQuery);
+            /*List<Edges> edges = edgesRepository.findByTableSetName(databaseDetails.getSqlSetName());
+            for(Edges edge : edges) {
+                System.out.println("Source : " + edge.getSource() + " -> " + edge.getDestination() + " : " + edge.getWeight());
+            }*/
+            Edges edge;
+            while (resultSet.next()) {
+                edge = new Edges();
+                edge.setSource(resultSet.getString("TABLE1"));
+                edge.setTarget(resultSet.getString("TABLE2"));
+                edge.setWeight(resultSet.getDouble("TOTAL_AFFINITY"));
+                edges.add(edge);
+            }
+            System.out.println("Total Number of Edges in Graph :: " + edges.size());
+        } catch (SQLException e) {
+            System.out.println("SQLException, Error Code :: " + e.getErrorCode());
+            e.printStackTrace();
+        } finally {
+            // Closing the resources
+            try {
+                if (connection != null) {
+                    connection.close();
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        return edges;
+    }
+
+    private String formDbConnectionStr(DatabaseDetails databaseDetails) {
+        String CLOUD_DB_URL_STR = "jdbc:oracle:thin:@(description= (retry_count=20)(retry_delay=3)(address=(protocol=tcps)\n" +
+                "(port="+databaseDetails.getPort()+")(host="+databaseDetails.getHostname()+"))\n" +
+                "(connect_data=(service_name="+databaseDetails.getServiceName()+"))\n" +
+                "(security=(ssl_server_dn_match=yes)))";
+        return CLOUD_DB_URL_STR;
     }
 
     public String executeProcedure(DatabaseDetails databaseDetails, int procedure) {
