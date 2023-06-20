@@ -6,6 +6,7 @@ import com.example.dra.entity.Tables18NodesEntity;
 import com.example.dra.repository.Tables18NodesRepository;
 import com.example.dra.service.CreateSQLTuningSetService;
 import com.example.dra.utils.FileUtil;
+import com.example.dra.utils.SBUtils;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,8 +30,16 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 	
 	private SimpleJdbcCall simpleJdbcCall;
 
+	@Value("${spring.datasource.hostname}")
+	String hostname;
+	@Value("${spring.datasource.port}")
+	String port;
+	@Value("${spring.datasource.service.name}")
+	String serviceName;
+	@Value("${spring.datasource.username}")
+	String username;
 	@Value("${spring.datasource.password}")
-	String PASSWORD1;
+	String password;
 
 	@Value("${dra.load.sts.sql.file.path}")
 	String sqlFilePath;
@@ -376,12 +385,12 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 
 	@Override
 	public List<String> getSQLTuningSetList(DatabaseDetails databaseDetails) {
+		databaseDetails = setDatabaseDetails(databaseDetails);
 		System.out.println("-----------------------------------------------");
 		System.out.println("Input Details of GET SQL TUNING SET LIST API ");
 		String dbUrlConnectionStr = formDbConnectionStr(databaseDetails);
 		System.out.println("DB Connection String :: "+dbUrlConnectionStr);
 		System.out.println("Username :: "+ databaseDetails.getUsername());
-		System.out.println("SQL Tuning Set :: "+ databaseDetails.getSqlSetName());
 		System.out.println("-----------------------------------------------");
 		String getSQLTuningSetListQuery = "SELECT ID, NAME, OWNER FROM DBA_SQLSET_DEFINITIONS";
 		Connection connection = null;
@@ -396,6 +405,7 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 				// Retrieve column values from the current row
 				sqlTuningSets.add(resultSet.getString("NAME"));
 			}
+			System.out.println("Number of SQL Tuning Sets :: " + sqlTuningSets.size());
 			return sqlTuningSets;
 		} catch (SQLException e) {
 			System.out.println("SQLException, Error Code :: " + e.getErrorCode());
@@ -412,6 +422,15 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 		}
 
 		return sqlTuningSets;
+	}
+
+	private DatabaseDetails setDatabaseDetails(DatabaseDetails databaseDetails) {
+		databaseDetails.setHostname(hostname);
+		databaseDetails.setPort(Integer.parseInt(port));
+		databaseDetails.setServiceName(serviceName);
+		databaseDetails.setUsername(username);
+		databaseDetails.setPassword(password);
+		return databaseDetails;
 	}
 
 }

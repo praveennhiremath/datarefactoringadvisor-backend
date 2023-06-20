@@ -53,7 +53,8 @@ public class DRAController {
 	}
 
 	@GetMapping("/getsqltuningsetlist")
-	public List<String> getSQLTuningSetList(@RequestBody DatabaseDetails databaseDetails) {
+	public List<String> getSQLTuningSetList() {
+		DatabaseDetails databaseDetails = new DatabaseDetails();
 		return createSQLTuningSetService.getSQLTuningSetList(databaseDetails);
 	}
 

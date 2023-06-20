@@ -21,6 +21,17 @@ public class GraphConstructorServiceImpl implements GraphConstructorService {
     //@Autowired
     //EdgesRepository edgesRepository;
 
+    @Value("${spring.datasource.hostname}")
+    String hostname;
+    @Value("${spring.datasource.port}")
+    String port;
+    @Value("${spring.datasource.service.name}")
+    String serviceName;
+    @Value("${spring.datasource.username}")
+    String username;
+    @Value("${spring.datasource.password}")
+    String password;
+
     public String processSTSMetadata(DatabaseDetails databaseDetails) {
         return constructGraph(databaseDetails);
     }
@@ -394,23 +405,24 @@ public class GraphConstructorServiceImpl implements GraphConstructorService {
 
     @Override
     public List<Edges> viewGraph(DatabaseDetails databaseDetails) {
+        databaseDetails = setDatabaseDetails(databaseDetails);
         System.out.println("-----------------------------------------------");
-        System.out.println("Input Details of GET SQL TUNING SET LIST API ");
+        System.out.println("Input Details of VIEW GRAPH API ");
         String dbUrlConnectionStr = formDbConnectionStr(databaseDetails);
         System.out.println("DB Connection String :: "+dbUrlConnectionStr);
         System.out.println("Username :: "+ databaseDetails.getUsername());
         System.out.println("SQL Tuning Set :: "+ databaseDetails.getSqlSetName());
         System.out.println("-----------------------------------------------");
-        String getSQLTuningSetListQuery = "SELECT * FROM "+databaseDetails.getUsername()+".EDGES" +
+        String getEdgesQuery = "SELECT * FROM "+databaseDetails.getUsername()+".EDGES" +
                 " WHERE TABLE_SET_NAME = '"+ databaseDetails.getSqlSetName() + "'";
-        System.out.println("getSQLTuningSetListQuery :: " + getSQLTuningSetListQuery);
+        System.out.println("getEdgesQuery :: " + getEdgesQuery);
         Connection connection = null;
         List<Edges> edges = new ArrayList<>();
         try {
             // Establishing a connection to the database
             connection = DriverManager.getConnection(dbUrlConnectionStr, databaseDetails.getUsername(), databaseDetails.getPassword());
             Statement s = connection.createStatement();
-            ResultSet resultSet = s.executeQuery(getSQLTuningSetListQuery);
+            ResultSet resultSet = s.executeQuery(getEdgesQuery);
             /*List<Edges> edges = edgesRepository.findByTableSetName(databaseDetails.getSqlSetName());
             for(Edges edge : edges) {
                 System.out.println("Source : " + edge.getSource() + " -> " + edge.getDestination() + " : " + edge.getWeight());
@@ -480,7 +492,17 @@ public class GraphConstructorServiceImpl implements GraphConstructorService {
         if(result==0) {
             return "Procedure 'compute_affinity_tkdra' executed Successfully";
         } else {
-            return "Error in excuting Procedure 'compute_affinity_tkdra'";
+            return "Error in executing Procedure 'compute_affinity_tkdra'";
         }
+    }
+
+    public DatabaseDetails setDatabaseDetails(DatabaseDetails databaseDetails) {
+        System.out.println("App.props, hostname :: " + hostname);
+        databaseDetails.setHostname(hostname);
+        databaseDetails.setPort(Integer.parseInt(port));
+        databaseDetails.setServiceName(serviceName);
+        databaseDetails.setUsername(username);
+        databaseDetails.setPassword(password);
+        return databaseDetails;
     }
 }
