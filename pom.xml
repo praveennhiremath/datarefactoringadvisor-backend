@@ -84,8 +84,23 @@
 			<artifactId>lombok</artifactId>
 			<version>1.18.26</version>
 		</dependency>
+
+		<!-- Community Detection -->
+		<dependency>
+			<groupId>com.oracle.database.graph</groupId>
+			<artifactId>opg-client</artifactId>
+			<version>22.4.1</version>
+		</dependency>
         
 	</dependencies>
+
+	<repositories>
+		<repository>
+			<id>spoofax</id>
+			<url>https://artifacts.metaborg.org/content/repositories/releases/
+			</url>
+		</repository>
+	</repositories>
 
 	<build>
 		<plugins>

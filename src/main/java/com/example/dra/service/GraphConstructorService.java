@@ -1,9 +1,7 @@
 package com.example.dra.service;
 
+import com.example.dra.ViewGraphResponse;
 import com.example.dra.bean.DatabaseDetails;
-import com.example.dra.entity.Edges;
-
-import java.util.List;
 
 public interface GraphConstructorService {
 
@@ -17,7 +15,7 @@ public interface GraphConstructorService {
 
     public int createComputeAffinityProcedure(DatabaseDetails databaseDetails);
 
-    List<Edges> viewGraph(DatabaseDetails databaseDetails);
+    ViewGraphResponse viewGraph(DatabaseDetails databaseDetails);
 
     //public String executeProcedure(DatabaseDetails databaseDetails, String procedure);
 }

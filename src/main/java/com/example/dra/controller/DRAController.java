@@ -1,8 +1,9 @@
 package com.example.dra.controller;
 
+import com.example.dra.ViewGraphResponse;
 import com.example.dra.bean.DatabaseDetails;
 import com.example.dra.dto.Tables18NodesDto;
-import com.example.dra.entity.Edges;
+import com.example.dra.service.CommunityDetectionService;
 import com.example.dra.service.GraphConstructorService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -21,6 +22,9 @@ public class DRAController {
 
 	@Autowired
 	GraphConstructorService graphConstructorService;
+
+	@Autowired
+	CommunityDetectionService communityDetectionService;
 	
 	@GetMapping("/gettablename")
 	public List<Tables18NodesDto> getTableName() {
@@ -59,7 +63,12 @@ public class DRAController {
 	}
 
 	@GetMapping("/viewgraph")
-	public List<Edges> viewGraph(@RequestBody DatabaseDetails databaseDetails) {
+	public ViewGraphResponse viewGraph(@RequestBody DatabaseDetails databaseDetails) {
 		return graphConstructorService.viewGraph(databaseDetails);
+	}
+
+	@PostMapping("/communitydetection")
+	public void communityDetection(@RequestBody DatabaseDetails databaseDetails) {
+		communityDetectionService.communityDetection(databaseDetails);
 	}
 }

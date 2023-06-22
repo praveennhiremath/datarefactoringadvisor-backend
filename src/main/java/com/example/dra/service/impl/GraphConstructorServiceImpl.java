@@ -1,11 +1,12 @@
 package com.example.dra.service.impl;
 
+import com.example.dra.ViewGraphResponse;
 import com.example.dra.bean.DatabaseDetails;
 import com.example.dra.entity.Edges;
 //import com.example.dra.repository.EdgesRepository;
+import com.example.dra.entity.Nodes;
 import com.example.dra.service.GraphConstructorService;
 import com.example.dra.utils.DBUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -404,7 +405,7 @@ public class GraphConstructorServiceImpl implements GraphConstructorService {
     }
 
     @Override
-    public List<Edges> viewGraph(DatabaseDetails databaseDetails) {
+    public ViewGraphResponse viewGraph(DatabaseDetails databaseDetails) {
         databaseDetails = setDatabaseDetails(databaseDetails);
         System.out.println("-----------------------------------------------");
         System.out.println("Input Details of VIEW GRAPH API ");
@@ -413,16 +414,37 @@ public class GraphConstructorServiceImpl implements GraphConstructorService {
         System.out.println("Username :: "+ databaseDetails.getUsername());
         System.out.println("SQL Tuning Set :: "+ databaseDetails.getSqlSetName());
         System.out.println("-----------------------------------------------");
+
+        String getNodesQuery = "SELECT * FROM "+databaseDetails.getUsername()+".NODES" +
+                " WHERE TABLE_SET_NAME = '"+ databaseDetails.getSqlSetName() + "'";
+        System.out.println("getNodesQuery :: " + getNodesQuery);
+
         String getEdgesQuery = "SELECT * FROM "+databaseDetails.getUsername()+".EDGES" +
                 " WHERE TABLE_SET_NAME = '"+ databaseDetails.getSqlSetName() + "'";
         System.out.println("getEdgesQuery :: " + getEdgesQuery);
+
         Connection connection = null;
+        ViewGraphResponse viewGraphResponse = new ViewGraphResponse();
+        List<Nodes> nodes = new ArrayList<>();
         List<Edges> edges = new ArrayList<>();
         try {
             // Establishing a connection to the database
             connection = DriverManager.getConnection(dbUrlConnectionStr, databaseDetails.getUsername(), databaseDetails.getPassword());
             Statement s = connection.createStatement();
-            ResultSet resultSet = s.executeQuery(getEdgesQuery);
+
+            ResultSet resultSet = s.executeQuery(getNodesQuery);
+
+            Nodes node;
+            while (resultSet.next()) {
+                node = new Nodes();
+                node.setName(resultSet.getString("TABLE_NAME"));
+                node.setColor("skyBlue");
+                nodes.add(node);
+            }
+            viewGraphResponse.setNodes(nodes);
+            System.out.println("Total Number of Nodes in Graph :: " + nodes.size());
+
+            resultSet = s.executeQuery(getEdgesQuery);
             /*List<Edges> edges = edgesRepository.findByTableSetName(databaseDetails.getSqlSetName());
             for(Edges edge : edges) {
                 System.out.println("Source : " + edge.getSource() + " -> " + edge.getDestination() + " : " + edge.getWeight());
@@ -435,6 +457,7 @@ public class GraphConstructorServiceImpl implements GraphConstructorService {
                 edge.setWeight(resultSet.getDouble("TOTAL_AFFINITY"));
                 edges.add(edge);
             }
+            viewGraphResponse.setEdges(edges);
             System.out.println("Total Number of Edges in Graph :: " + edges.size());
         } catch (SQLException e) {
             System.out.println("SQLException, Error Code :: " + e.getErrorCode());
@@ -449,7 +472,7 @@ public class GraphConstructorServiceImpl implements GraphConstructorService {
                 e.printStackTrace();
             }
         }
-        return edges;
+        return viewGraphResponse;
     }
 
     private String formDbConnectionStr(DatabaseDetails databaseDetails) {
@@ -505,4 +528,6 @@ public class GraphConstructorServiceImpl implements GraphConstructorService {
         databaseDetails.setPassword(password);
         return databaseDetails;
     }
+
+
 }
