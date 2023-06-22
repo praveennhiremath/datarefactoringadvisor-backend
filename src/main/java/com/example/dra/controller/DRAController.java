@@ -63,7 +63,9 @@ public class DRAController {
 	}
 
 	@GetMapping("/viewgraph")
-	public ViewGraphResponse viewGraph(@RequestBody DatabaseDetails databaseDetails) {
+	public ViewGraphResponse viewGraph(@RequestParam("sqlSetName") String sqlSetName) {
+		DatabaseDetails databaseDetails = new DatabaseDetails();
+		databaseDetails.setSqlSetName(sqlSetName);
 		return graphConstructorService.viewGraph(databaseDetails);
 	}
 
