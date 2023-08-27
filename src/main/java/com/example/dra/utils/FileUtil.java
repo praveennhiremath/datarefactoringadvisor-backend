@@ -2,6 +2,7 @@ package com.example.dra.utils;
 
 import com.example.dra.bean.DatabaseDetails;
 import com.example.dra.service.impl.CreateSQLTuningSetServiceImpl;
+import com.example.dra.service.impl.DRAUtilsImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
@@ -17,6 +18,9 @@ import java.util.List;
 
 @Component
 public class FileUtil {
+
+    @Autowired
+    DRAUtilsImpl draUtilsImpl;
 
     @Autowired
     ResourceLoader resourceLoader;
@@ -49,13 +53,13 @@ public class FileUtil {
             System.out.println("--- "+line);
         }
 
-        DatabaseDetails databaseDetails = getDummyDatabaseDetailsObj();
+        DatabaseDetails databaseDetails = new FileUtil().getDummyDatabaseDetailsObj();
         new CreateSQLTuningSetServiceImpl().executeQueries(databaseDetails, lines);
     }
 
-    private static DatabaseDetails getDummyDatabaseDetailsObj() {
+    private DatabaseDetails getDummyDatabaseDetailsObj() {
         DatabaseDetails databaseDetails = new DatabaseDetails();
-        databaseDetails.setUrl(new DBUtils().formDbConnectionStr(databaseDetails));
+        databaseDetails.setUrl(draUtilsImpl.formDbConnectionStr(databaseDetails));
         databaseDetails.setDatabaseName("medicalrecordsdb");
         databaseDetails.setPort(1511);
         databaseDetails.setHostname("adb.us-ashburn-1.oraclecloud.com");

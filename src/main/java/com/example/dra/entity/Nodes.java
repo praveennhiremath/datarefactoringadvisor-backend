@@ -9,4 +9,13 @@ public class Nodes {
 
     private String name;
     private String color;
+    private int communityNumber;
+
+    @Override
+    public String toString() {
+        return "Nodes{" +
+                "name='" + name + '\'' +
+                ", color='" + color + '\'' +
+                '}';
+    }
 }

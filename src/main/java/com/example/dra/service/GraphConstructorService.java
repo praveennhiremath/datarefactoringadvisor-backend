@@ -17,5 +17,7 @@ public interface GraphConstructorService {
 
     ViewGraphResponse viewGraph(DatabaseDetails databaseDetails);
 
+    boolean deleteGraph(DatabaseDetails databaseDetails);
+
     //public String executeProcedure(DatabaseDetails databaseDetails, String procedure);
 }

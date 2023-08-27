@@ -2,6 +2,7 @@ package com.example.dra.controller;
 
 import com.example.dra.ViewGraphResponse;
 import com.example.dra.bean.DatabaseDetails;
+import com.example.dra.dto.RefineCommunityDto;
 import com.example.dra.dto.Tables18NodesDto;
 import com.example.dra.service.CommunityDetectionService;
 import com.example.dra.service.GraphConstructorService;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import com.example.dra.service.CreateSQLTuningSetService;
 
+import java.util.Date;
 import java.util.List;
 
 @CrossOrigin(origins = "*")
@@ -52,7 +54,11 @@ public class DRAController {
 
 	@PostMapping("/collectsqltuningset")
 	public String collectSQLTuningSet(@RequestBody DatabaseDetails databaseDetails) {
+		//String result = "In Collecting SQL Set";
 		String result = createSQLTuningSetService.collectSQLTuningSet(databaseDetails);
+		//String str = null;
+		//str.toString();
+		System.out.println("collectSQLTuningSet return Value from Backend = " + result);
 		return result;
 	}
 
@@ -69,8 +75,53 @@ public class DRAController {
 		return graphConstructorService.viewGraph(databaseDetails);
 	}
 
-	@PostMapping("/communitydetection")
-	public void communityDetection(@RequestBody DatabaseDetails databaseDetails) {
-		communityDetectionService.communityDetection(databaseDetails);
+	@GetMapping("/deletegraph")
+	public boolean deleteGraph(@RequestParam("sqlSetName") String sqlSetName) {
+		System.out.println("In Delete Graph Controller, For STS = " + sqlSetName);
+		DatabaseDetails databaseDetails = new DatabaseDetails();
+		databaseDetails.setSqlSetName(sqlSetName);
+		return graphConstructorService.deleteGraph(databaseDetails);
 	}
+
+	@GetMapping("/communitydetection")
+	public ViewGraphResponse communityDetection(@RequestParam("sqlSetName") String sqlSetName) {
+		DatabaseDetails databaseDetails = new DatabaseDetails();
+		databaseDetails.setSqlSetName(sqlSetName);
+		return communityDetectionService.communityDetection(databaseDetails);
+	}
+
+	@GetMapping("/viewcommunity")
+	public String viewCommunity(@RequestParam("sqlSetName") String sqlSetName) {
+		DatabaseDetails databaseDetails = new DatabaseDetails();
+		databaseDetails.setSqlSetName(sqlSetName);
+		return communityDetectionService.viewCommunity(databaseDetails);
+	}
+
+	@PostMapping("/savecommunity")
+	public String saveCommunity(@RequestBody DatabaseDetails databaseDetails) {
+		System.out.println("In savecommunity Controller");
+		System.out.println("STS : " + databaseDetails.getSqlSetName());
+		System.out.println("Json : " + databaseDetails.getGraphData());
+		String result = communityDetectionService.saveCommunity(databaseDetails);
+		return result;
+	}
+
+	@GetMapping("/getRefineCommunityEdges")
+	public List<RefineCommunityDto> getRefineCommunityEdges(@RequestParam("sqlSetName") String sqlSetName) {
+		DatabaseDetails databaseDetails = new DatabaseDetails();
+		databaseDetails.setSqlSetName(sqlSetName);
+		return communityDetectionService.getRefineCommunityEdges(databaseDetails);
+	}
+
+	@PostMapping("/refinecommunity")
+	public String refineCommunity(@RequestBody DatabaseDetails databaseDetails) {
+		System.out.println("In refineCommunity Controller");
+		System.out.println("STS : " + databaseDetails.getSqlSetName());
+		// result = communityDetectionService.refineCommunityUsingColors(databaseDetails);
+		String result = communityDetectionService.refineCommunityUsingAffinity(databaseDetails);
+		System.out.println("Refine Community Completed for : " + databaseDetails.getSqlSetName());
+		return result;
+	}
+
+
 }

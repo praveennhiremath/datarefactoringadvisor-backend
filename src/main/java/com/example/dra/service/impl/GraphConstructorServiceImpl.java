@@ -5,8 +5,10 @@ import com.example.dra.bean.DatabaseDetails;
 import com.example.dra.entity.Edges;
 //import com.example.dra.repository.EdgesRepository;
 import com.example.dra.entity.Nodes;
+import com.example.dra.service.DRAUtils;
 import com.example.dra.service.GraphConstructorService;
 import com.example.dra.utils.DBUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -17,21 +19,8 @@ import java.util.List;
 @Service
 public class GraphConstructorServiceImpl implements GraphConstructorService {
 
-    @Value("${spring.datasource.password}")
-    String PASSWORD1;
-    //@Autowired
-    //EdgesRepository edgesRepository;
-
-    @Value("${spring.datasource.hostname}")
-    String hostname;
-    @Value("${spring.datasource.port}")
-    String port;
-    @Value("${spring.datasource.service.name}")
-    String serviceName;
-    @Value("${spring.datasource.username}")
-    String username;
-    @Value("${spring.datasource.password}")
-    String password;
+    @Autowired
+    DRAUtilsImpl draUtilsImpl;
 
     public String processSTSMetadata(DatabaseDetails databaseDetails) {
         return constructGraph(databaseDetails);
@@ -43,7 +32,7 @@ public class GraphConstructorServiceImpl implements GraphConstructorService {
         System.out.println("In constructGraph");
         // create metadata tables
         System.out.println("Creating Metadata Tables");
-        createMetadataTables(databaseDetails);
+        //createMetadataTables(databaseDetails);
 
         // Populate Data into Nodes table
         System.out.println("Populating Data into Nodes Table");
@@ -109,7 +98,7 @@ public class GraphConstructorServiceImpl implements GraphConstructorService {
 
     private boolean checkTableIfExists(DatabaseDetails databaseDetails, String tableName) {
         String query = "select count(*) from user_tables where table_name='"+tableName+"'";
-        String dbUrlConnectionStr = DBUtils.formDbConnectionStr(databaseDetails);
+        String dbUrlConnectionStr = draUtilsImpl.formDbConnectionStr(databaseDetails);
         boolean isTableExists = false;
         Connection connection = null;
         try {
@@ -121,6 +110,7 @@ public class GraphConstructorServiceImpl implements GraphConstructorService {
             // Use the metadata to check if the table exists
             try (ResultSet resultSet = metadata.getTables(null, null, tableName, null)) {
                 if (resultSet.next()) {
+                    System.out.println(tableName + " Table Exists!!!");
                     isTableExists = true;
                 }
             }
@@ -140,12 +130,12 @@ public class GraphConstructorServiceImpl implements GraphConstructorService {
                 e.printStackTrace();
             }
         }
-        return isTableExists;
+        return !isTableExists;
     }
 
     private boolean executeSQLQuery(DatabaseDetails databaseDetails, String query) {
 
-        String dbUrlConnectionStr = DBUtils.formDbConnectionStr(databaseDetails);
+        String dbUrlConnectionStr = draUtilsImpl.formDbConnectionStr(databaseDetails);
         //System.out.println(dbUrlConnectionStr);
 
         Connection connection = null;
@@ -171,16 +161,11 @@ public class GraphConstructorServiceImpl implements GraphConstructorService {
         return !result;
     }
 
-    private int executeUpdateSQLQuery(DatabaseDetails databaseDetails, String query) {
-
-        String dbUrlConnectionStr = DBUtils.formDbConnectionStr(databaseDetails);
-
+    public int executeUpdateSQLQuery(DatabaseDetails databaseDetails, String query) {
+        String dbUrlConnectionStr = draUtilsImpl.formDbConnectionStr(databaseDetails);
         Connection connection = null;
-        CallableStatement callableStatement = null;
         int result = 0;
         try {
-            // Establishing a connection to the database
-
             connection = DriverManager.getConnection(dbUrlConnectionStr, databaseDetails.getUsername(), databaseDetails.getPassword());
             Statement s = connection.createStatement();
             result = s.executeUpdate(query);
@@ -188,11 +173,7 @@ public class GraphConstructorServiceImpl implements GraphConstructorService {
             System.out.println("SQLException, Error Code :: "+e.getErrorCode());
             e.printStackTrace();
         } finally {
-            // Closing the resources
             try {
-                if (callableStatement != null) {
-                    callableStatement.close();
-                }
                 if (connection != null) {
                     connection.close();
                 }
@@ -225,7 +206,9 @@ public class GraphConstructorServiceImpl implements GraphConstructorService {
                 "            select p.object_name, p.operation, p.object_owner, \n" +
                 "                p.sql_id, p.executions, i.table_name\n" +
                 "            from dba_sqlset_plans p, all_indexes i\n" +
-                "            where p.object_name=i.index_name(+) \n" +
+                "            where p.object_name=i.index_name(+)\n " +
+                "            and p.object_name not in ('NODES','EDGES','GRAPHS_DATA') \n" +
+                "            and (i.table_name not in ('NODES','EDGES','GRAPHS_DATA') or i.table_name is null)\n" +
                 "            and sqlset_name='"+sqlSetName+"'\n" +
                 "            and object_owner = upper('"+username+"')\n" +
                 "        ) v  \n" +
@@ -247,7 +230,7 @@ public class GraphConstructorServiceImpl implements GraphConstructorService {
     @Override
     public String createHelperViewForAffinityCalculation(DatabaseDetails databaseDetails) {
 
-        String CREATE_HELPER_VIEW_PROC = "create view tableset_sql as \n" +
+        String CREATE_HELPER_VIEW_PROC = "create or replace view tableset_sql as \n" +
                 "select distinct table_name, sql_id \n" +
                 "from (\n" +
                 "    select '"+databaseDetails.getSqlSetName()+"' table_set_name,\n" +
@@ -262,6 +245,7 @@ public class GraphConstructorServiceImpl implements GraphConstructorService {
                 "            p.sql_id, p.executions, i.table_name\n" +
                 "        from dba_sqlset_plans p, all_indexes i\n" +
                 "        where p.object_name=i.index_name(+) \n" +
+                "        and p.object_name not in ('NODES','EDGES','GRAPHS_DATA')\n" +
                 "        and sqlset_name='"+databaseDetails.getSqlSetName()+"' \n" +
                 "        and object_owner = '"+databaseDetails.getUsername()+"'\n" +
                 "    ) v\n" +
@@ -277,7 +261,7 @@ public class GraphConstructorServiceImpl implements GraphConstructorService {
 
         String COMPUTE_AFFINITY_PROCEDURE = "create or replace procedure compute_affinity_tkdra as\n" +
                 "cursor c is\n" +
-                "select table_name, schema from nodes;\n" +
+                "select table_name, schema from nodes where table_set_name = '"+databaseDetails.getSqlSetName()+"';\n" +
                 "tblnm varchar2(128);\n" +
                 "ins_sql varchar2(4000);\n" +
                 "upd_sql varchar2(4000);\n" +
@@ -352,7 +336,8 @@ public class GraphConstructorServiceImpl implements GraphConstructorService {
                 "                                from dba_sqlset_plans \n" +
                 "                                where sqlset_name='"+databaseDetails.getSqlSetName()+"' \n" +
                 "                                and object_name='}'||r.table_name||q'{' \n" +
-                "                                and  object_owner=upper('"+databaseDetails.getUsername()+"')\n" +
+                "                                and object_name not in ('NODES','EDGES','GRAPHS_DATA')\n" +
+                "                                and object_owner=upper('"+databaseDetails.getUsername()+"')\n" +
                 "                            ) \n" +
                 "                        ) v \n" +
                 "                    ) v1  \n" +
@@ -406,10 +391,10 @@ public class GraphConstructorServiceImpl implements GraphConstructorService {
 
     @Override
     public ViewGraphResponse viewGraph(DatabaseDetails databaseDetails) {
-        databaseDetails = setDatabaseDetails(databaseDetails);
+        databaseDetails = draUtilsImpl.setDatabaseDetails(databaseDetails);
         System.out.println("-----------------------------------------------");
         System.out.println("Input Details of VIEW GRAPH API ");
-        String dbUrlConnectionStr = formDbConnectionStr(databaseDetails);
+        String dbUrlConnectionStr = draUtilsImpl.formDbConnectionStr(databaseDetails);
         System.out.println("DB Connection String :: "+dbUrlConnectionStr);
         System.out.println("Username :: "+ databaseDetails.getUsername());
         System.out.println("SQL Tuning Set :: "+ databaseDetails.getSqlSetName());
@@ -475,17 +460,49 @@ public class GraphConstructorServiceImpl implements GraphConstructorService {
         return viewGraphResponse;
     }
 
-    private String formDbConnectionStr(DatabaseDetails databaseDetails) {
-        String CLOUD_DB_URL_STR = "jdbc:oracle:thin:@(description= (retry_count=20)(retry_delay=3)(address=(protocol=tcps)\n" +
-                "(port="+databaseDetails.getPort()+")(host="+databaseDetails.getHostname()+"))\n" +
-                "(connect_data=(service_name="+databaseDetails.getServiceName()+"))\n" +
-                "(security=(ssl_server_dn_match=yes)))";
-        return CLOUD_DB_URL_STR;
+    @Override
+    public boolean deleteGraph(DatabaseDetails databaseDetails) {
+        databaseDetails = draUtilsImpl.setDatabaseDetails(databaseDetails);
+        System.out.println("-----------------------------------------------");
+        System.out.println("Input Details of Deleting SQL TUNING SET API ");
+        String dbUrlConnectionStr = draUtilsImpl.formDbConnectionStr(databaseDetails);
+        System.out.println("DB Connection String :: "+dbUrlConnectionStr);
+        System.out.println("Username :: "+ databaseDetails.getUsername());
+        System.out.println("SQL Tuning Set :: "+ databaseDetails.getSqlSetName());
+        System.out.println("-----------------------------------------------");
+
+        Connection connection = null;
+        CallableStatement callableStatement = null;
+        boolean result = true;
+        try {
+            connection = DriverManager.getConnection(dbUrlConnectionStr, databaseDetails.getUsername(), databaseDetails.getPassword());
+            String DELETE_STS_PROC = "CALL DBMS_SQLTUNE.DROP_SQLSET(sqlset_name => '" + databaseDetails.getSqlSetName() + "')";
+            callableStatement = connection.prepareCall(DELETE_STS_PROC);
+            result = callableStatement.execute();
+            System.out.println("result :: " + result);
+        } catch (SQLException e) {
+            System.out.println("SQLException, Error Code :: " + e.getErrorCode());
+            e.printStackTrace();
+        } finally {
+            // Closing the resources
+            try {
+                if (callableStatement != null) {
+                    callableStatement.close();
+                }
+                if (connection != null) {
+                    connection.close();
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        System.out.println("IS DELETE SUCCESS = " + !result);
+        return !result;
     }
 
     public String executeProcedure(DatabaseDetails databaseDetails, int procedure) {
 
-        String dbUrlConnectionStr = DBUtils.formDbConnectionStr(databaseDetails);
+        String dbUrlConnectionStr = draUtilsImpl.formDbConnectionStr(databaseDetails);
 
         String SQL_STORED_PROC_STS = "CALL compute_affinity_tkdra()";
         Connection connection = null;
@@ -519,15 +536,7 @@ public class GraphConstructorServiceImpl implements GraphConstructorService {
         }
     }
 
-    public DatabaseDetails setDatabaseDetails(DatabaseDetails databaseDetails) {
-        System.out.println("App.props, hostname :: " + hostname);
-        databaseDetails.setHostname(hostname);
-        databaseDetails.setPort(Integer.parseInt(port));
-        databaseDetails.setServiceName(serviceName);
-        databaseDetails.setUsername(username);
-        databaseDetails.setPassword(password);
-        return databaseDetails;
-    }
+
 
 
 }

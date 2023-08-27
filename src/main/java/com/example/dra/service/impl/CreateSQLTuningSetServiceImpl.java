@@ -22,6 +22,11 @@ import java.util.List;
 @Service
 public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService {
 
+	@Autowired
+	DRAUtilsImpl draUtilsImpl;
+
+	@Autowired
+	GraphConstructorServiceImpl graphConstructorServiceImpl;
 	@Resource
 	Tables18NodesRepository tables18NodesRepository;
 
@@ -107,7 +112,7 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 	@Override
 	public String createSQLTuningSet(DatabaseDetails databaseDetails) {
 
-		String dbUrlConnectionStr = formDbConnectionStr(databaseDetails);
+		String dbUrlConnectionStr = draUtilsImpl.formDbConnectionStr(databaseDetails);
 		//System.out.println(dbUrlConnectionStr);
 
 		Connection connection = null;
@@ -146,76 +151,24 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 		}
 	}
 
-	private String formDbConnectionStr(DatabaseDetails databaseDetails) {
-		String CLOUD_DB_URL_STR = "jdbc:oracle:thin:@(description= (retry_count=20)(retry_delay=3)(address=(protocol=tcps)\n" +
-				"(port="+databaseDetails.getPort()+")(host="+databaseDetails.getHostname()+"))\n" +
-				"(connect_data=(service_name="+databaseDetails.getServiceName()+"))\n" +
-				"(security=(ssl_server_dn_match=yes)))";
-		return CLOUD_DB_URL_STR;
-	}
-
 	@Override
 	public String dropSQLTuningSet(DatabaseDetails databaseDetails) {
-		{
 
-			String dbUrlConnectionStr = formDbConnectionStr(databaseDetails);
-			//System.out.println(dbUrlConnectionStr);
-
-			Connection connection = null;
-			CallableStatement callableStatement = null;
-			boolean result = false;
-			try {
-				// Establishing a connection to the database
-				connection = DriverManager.getConnection(dbUrlConnectionStr, databaseDetails.getUsername(), databaseDetails.getPassword());
-				// Creating a CallableStatement for invoking DBMS_SQLTUNE
-				String SQL_STORED_PROC_STS = "CALL DBMS_SQLTUNE.DROP_SQLSET(sqlset_name => '"+databaseDetails.getSqlSetName()+"')";
-				callableStatement = connection.prepareCall(SQL_STORED_PROC_STS);
-				result = callableStatement.execute();
-				System.out.println("result :: " + result);
-
-			} catch (SQLException e) {
-				System.out.println("SQLException, Error Code :: "+e.getErrorCode());
-				e.printStackTrace();
-			} finally {
-				// Closing the resources
-				try {
-					if (callableStatement != null) {
-						callableStatement.close();
-					}
-					if (connection != null) {
-						connection.close();
-					}
-				} catch (SQLException e) {
-					e.printStackTrace();
-				}
-			}
-
-			if(!result) {
-				return "STS '"+ databaseDetails.getSqlSetName() +"' Dropped";
-			} else {
-				return "Error in Dropping STS '"+databaseDetails.getSqlSetName()+"'";
-			}
-		}
-	}
-
-
-
-	@Override
-	public String loadSQLTuningSet(DatabaseDetails databaseDetails) {
-
-		String dbUrlConnectionStr = formDbConnectionStr(databaseDetails);
+		String dbUrlConnectionStr = draUtilsImpl.formDbConnectionStr(databaseDetails);
 		//System.out.println(dbUrlConnectionStr);
 
 		Connection connection = null;
 		CallableStatement callableStatement = null;
-		String resultLoadSts = "";
+		boolean result = false;
 		try {
 			// Establishing a connection to the database
 			connection = DriverManager.getConnection(dbUrlConnectionStr, databaseDetails.getUsername(), databaseDetails.getPassword());
-			String resultExecute = executeQueries(databaseDetails,null);
-			resultLoadSts = LoadSQLTuningSet(databaseDetails);
-			System.out.println("resultLoadSts :: " + resultLoadSts);
-			return resultLoadSts;
+			// Creating a CallableStatement for invoking DBMS_SQLTUNE
+			String SQL_STORED_PROC_STS = "CALL DBMS_SQLTUNE.DROP_SQLSET(sqlset_name => '"+databaseDetails.getSqlSetName()+"')";
+			callableStatement = connection.prepareCall(SQL_STORED_PROC_STS);
+			result = callableStatement.execute();
+			System.out.println("result :: " + result);
+
 		} catch (SQLException e) {
 			System.out.println("SQLException, Error Code :: "+e.getErrorCode());
 			e.printStackTrace();
@@ -225,6 +178,44 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 				if (callableStatement != null) {
 					callableStatement.close();
 				}
+				if (connection != null) {
+					connection.close();
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+
+		if(!result) {
+			return "STS '"+ databaseDetails.getSqlSetName() +"' Dropped";
+		} else {
+			return "Error in Dropping STS '"+databaseDetails.getSqlSetName()+"'";
+		}
+	}
+
+
+
+	@Override
+	public String loadSQLTuningSet(DatabaseDetails databaseDetails) {
+		String dbUrlConnectionStr = draUtilsImpl.formDbConnectionStr(databaseDetails);
+		Connection connection = null;
+		String resultLoadSts = "";
+		try {
+			connection = DriverManager.getConnection(dbUrlConnectionStr, databaseDetails.getUsername(), databaseDetails.getPassword());
+			String resultExecute = executeQueries(databaseDetails,null);
+			System.out.println("Is Queries Quecuted? " + resultExecute);
+			boolean isLoadSTSSuccess = LoadSQLTuningSet(databaseDetails);
+			if(isLoadSTSSuccess) {
+				resultLoadSts = "SQL Tuning Set '"+ databaseDetails.getSqlSetName() +"' Loaded Successfully";
+			} else {
+				resultLoadSts = "Error in Loading SQL Tuning Set '"+databaseDetails.getSqlSetName()+"'";
+			}
+			return resultLoadSts;
+		} catch (SQLException e) {
+			System.out.println("SQLException, Error Code :: "+e.getErrorCode());
+			e.printStackTrace();
+		} finally {
+			try {
 				if (connection != null) {
 					connection.close();
 				}
@@ -239,33 +230,22 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 
 
 	public String executeQueries(DatabaseDetails databaseDetails, List<String> queries) {
-
-		System.out.println("Executing Queriessss for Load STS");
-		String dbUrlConnectionStr = formDbConnectionStr(databaseDetails);
-		//System.out.println(dbUrlConnectionStr);
-
+		System.out.println("Executing Queries for Load STS");
+		String dbUrlConnectionStr = draUtilsImpl.formDbConnectionStr(databaseDetails);
 		Connection connection = null;
-		CallableStatement callableStatement = null;
-
 		try {
-			// Establishing a connection to the database
 			connection = DriverManager.getConnection(dbUrlConnectionStr, databaseDetails.getUsername(), databaseDetails.getPassword());
 			Statement s = connection.createStatement();
-
 			for (String query : queries) {
-				System.out.println("Query : " + query);
+				System.out.println("Executing Query : " + query);
 				s.executeQuery(query);
 			}
-
 		} catch (SQLException e) {
 			System.out.println("SQLException, Error Code :: "+e.getErrorCode());
 			e.printStackTrace();
 		} finally {
 			// Closing the resources
 			try {
-				if (callableStatement != null) {
-					callableStatement.close();
-				}
 				if (connection != null) {
 					connection.close();
 				}
@@ -274,13 +254,12 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 			}
 		}
 		return "Queries Executed";
-
 	}
 
-	public String LoadSQLTuningSet(DatabaseDetails databaseDetails) {
-
+	public boolean LoadSQLTuningSet(DatabaseDetails databaseDetails) {
+		boolean isLoadSTSSuccess = true;
 		System.out.println("IN LoadSQLTuningSet");
-		String dbUrlConnectionStr = formDbConnectionStr(databaseDetails);
+		String dbUrlConnectionStr = draUtilsImpl.formDbConnectionStr(databaseDetails);
 		//System.out.println(dbUrlConnectionStr);
 
 		String LOAD_STS_PROC = "declare\n" +
@@ -290,7 +269,7 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 				"select value (P)\n" +
 				"from table" +
 				"(dbms_sqltune.select_cursor_cache('parsing_schema_name =upper(''"+databaseDetails.getUsername()+"'') " +
-				"and sql_text not like ''%OPT_DYN%''', null, null, null, null,1, null, 'ALL', 'NO_RECURSIVE_SQL')) P;\n" +
+				"and sql_text not like ''%OPT_DYN%'' and sql_text not like ''%NODES%'' and sql_text not like ''%EDGES%''', null, null, null, null,1, null, 'ALL', 'NO_RECURSIVE_SQL')) P;\n" +
 				"dbms_sqltune.load_sqlset(sqlset_name => '"+databaseDetails.getSqlSetName()+"', " +
 				"populate_cursor => mycur," +
 				"sqlset_owner => '"+databaseDetails.getUsername()+"');\n" +
@@ -299,13 +278,13 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 		System.out.println("Load STS Query :: "+ LOAD_STS_PROC);
 		Connection connection = null;
 		CallableStatement callableStatement = null;
-		boolean result = true;
 		try {
 			// Establishing a connection to the database
 			connection = DriverManager.getConnection(dbUrlConnectionStr, databaseDetails.getUsername(), databaseDetails.getPassword());
+
 			// Creating a CallableStatement for invoking DBMS_SQLTUNE
 			callableStatement = connection.prepareCall(LOAD_STS_PROC);
-			result = callableStatement.execute();
+			isLoadSTSSuccess = callableStatement.execute();
 		} catch (SQLException e) {
 			System.out.println("SQLException, Error Code :: "+e.getErrorCode());
 			e.printStackTrace();
@@ -322,31 +301,29 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 				e.printStackTrace();
 			}
 		}
-		if(!result) {
-			return "SQL Tuning Set '"+ databaseDetails.getSqlSetName() +"' Loaded Successfully";
-		} else {
-			return "Error in Loading SQL Tuning Set '"+databaseDetails.getSqlSetName()+"'";
-		}
+		return !isLoadSTSSuccess;
+
 	}
 
 	@Override
 	public String collectSQLTuningSet(DatabaseDetails databaseDetails) {
+		//databaseDetails.setPassword("Welcome123456");
 		System.out.println("-----------------------------------------------");
 		System.out.println("Input Details of COLLECT SQL TUNING SET API ");
-		String dbUrlConnectionStr = formDbConnectionStr(databaseDetails);
+		String dbUrlConnectionStr = draUtilsImpl.formDbConnectionStr(databaseDetails);
+		System.out.println("databaseDetails :: " + databaseDetails.toString());
 		System.out.println("DB Connection String :: "+dbUrlConnectionStr);
 		System.out.println("Username :: "+ databaseDetails.getUsername());
+		System.out.println("Password :: "+ databaseDetails.getPassword());
 		System.out.println("SQL Tuning Set :: "+ databaseDetails.getSqlSetName());
 		System.out.println("-----------------------------------------------");
 
 		Connection connection = null;
 		CallableStatement callableStatement = null;
 		boolean result = true;
-		String resultLoadSts = "";
+		boolean isLoadSTSSuccess = true;
 		try {
-			// Establishing a connection to the database
 			connection = DriverManager.getConnection(dbUrlConnectionStr, databaseDetails.getUsername(), databaseDetails.getPassword());
-			// Creating a CallableStatement for invoking DBMS_SQLTUNE
 			String SQL_STORED_PROC_STS = "CALL DBMS_SQLTUNE.CREATE_SQLSET(sqlset_name => '" + databaseDetails.getSqlSetName() + "')";
 			callableStatement = connection.prepareCall(SQL_STORED_PROC_STS);
 			result = callableStatement.execute();
@@ -355,9 +332,12 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 				List<String> queries = new FileUtil().readLoadStsSimulateFile(sqlFilePath);
 				String resultExecute = executeQueries(databaseDetails, queries);
 				System.out.println(resultExecute);
-				resultLoadSts = LoadSQLTuningSet(databaseDetails);
-				System.out.println(resultLoadSts);
-				new GraphConstructorServiceImpl().constructGraph(databaseDetails);
+
+				isLoadSTSSuccess = LoadSQLTuningSet(databaseDetails);
+				System.out.println(isLoadSTSSuccess);
+
+				graphConstructorServiceImpl.constructGraph(databaseDetails);
+
 			}
 		} catch (SQLException e) {
 			System.out.println("SQLException, Error Code :: " + e.getErrorCode());
@@ -375,7 +355,6 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 				e.printStackTrace();
 			}
 		}
-
 		if (!result) {
 			return "Collected SQL Tuning Set for '" + databaseDetails.getSqlSetName() + "' ";
 		} else {
@@ -385,20 +364,19 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 
 	@Override
 	public List<String> getSQLTuningSetList(DatabaseDetails databaseDetails) {
-		databaseDetails = setDatabaseDetails(databaseDetails);
+		databaseDetails = draUtilsImpl.setDatabaseDetails(databaseDetails);
 		System.out.println("-----------------------------------------------");
 		System.out.println("Input Details of GET SQL TUNING SET LIST API ");
-		String dbUrlConnectionStr = formDbConnectionStr(databaseDetails);
+		String dbUrlConnectionStr = draUtilsImpl.formDbConnectionStr(databaseDetails);
 		System.out.println("DB Connection String :: "+dbUrlConnectionStr);
 		System.out.println("Username :: "+ databaseDetails.getUsername());
 		System.out.println("-----------------------------------------------");
-		String getSQLTuningSetListQuery = "SELECT ID, NAME, OWNER FROM DBA_SQLSET_DEFINITIONS";
+		String getSQLTuningSetListQuery = "SELECT ID, NAME, OWNER FROM DBA_SQLSET_DEFINITIONS WHERE ID > 214";
 		Connection connection = null;
 		List<String> sqlTuningSets = new ArrayList<>();
 		try {
 			// Establishing a connection to the database
 			connection = DriverManager.getConnection(dbUrlConnectionStr, databaseDetails.getUsername(), databaseDetails.getPassword());
-
 			Statement s = connection.createStatement();
 			ResultSet resultSet = s.executeQuery(getSQLTuningSetListQuery);
 			while (resultSet.next()) {
@@ -420,17 +398,7 @@ public class CreateSQLTuningSetServiceImpl implements CreateSQLTuningSetService 
 				e.printStackTrace();
 			}
 		}
-
 		return sqlTuningSets;
-	}
-
-	private DatabaseDetails setDatabaseDetails(DatabaseDetails databaseDetails) {
-		databaseDetails.setHostname(hostname);
-		databaseDetails.setPort(Integer.parseInt(port));
-		databaseDetails.setServiceName(serviceName);
-		databaseDetails.setUsername(username);
-		databaseDetails.setPassword(password);
-		return databaseDetails;
 	}
 
 }
